@@ -1,0 +1,12 @@
+numpy
+scipy
+pandas
+sentence-transformers
+spacy
+networkx
+python-louvain
+pypdf
+scikit-learn
+pyyaml
+tqdm
+ollama

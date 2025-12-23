@@ -1,0 +1,25 @@
+paths:
+  pdf_path: "data/Ambedkar_book[1].pdf"
+  chunks_path: "data/processed/chunks.json"
+  graph_path: "data/processed/knowledge_graph.pkl"
+
+chunking:
+  embedding_model: "all-MiniLM-L6-v2"
+  buffer_size: 3           # you can tune this
+  cosine_threshold: 0.25   # lower = larger chunks
+  max_tokens_chunk: 1024
+  subchunk_tokens: 128
+
+graph:
+  use_leiden: false        # we’ll use Louvain for simplicity
+  min_community_size: 3
+
+retrieval:
+  top_k_local: 5
+  top_k_global: 3
+  entity_sim_threshold: 0.3   # τ_e
+  chunk_sim_threshold: 0.25   # τ_d
+
+llm:
+  model: "mistral"           # ollama model name, e.g. "mistral" or "llama3"
+  max_tokens: 512
