@@ -1,236 +1,51 @@
-# AmbedkarGPT
-SemRAG-Inspired Graph RAG System over Dr. B. R. Ambedkar’s Works
+AmbedkarGPT
 
-AmbedkarGPT is a Retrieval-Augmented Generation (RAG) system inspired by the SemRAG research paper.
-It builds a graph-based semantic retrieval pipeline over Dr. B. R. Ambedkar’s writings and answers questions using a local LLM (e.g., Mistral via Ollama) in a grounded, context-aware manner.
+A SemRAG-Inspired Graph RAG System over Dr. B. R. Ambedkar’s Works
 
-All components run fully offline, making the system suitable for controlled demos and interviews.
+AmbedkarGPT is a fully local Retrieval-Augmented Generation system built to answer questions about Dr. B. R. Ambedkar’s writings in a grounded and context-aware manner.
 
-1. Project Overview
+Instead of relying on plain vector search, the system follows ideas from the SemRAG research paper, combining semantic chunking, a knowledge graph, and graph-based retrieval before generating answers using a local LLM (via Ollama).
 
-The system closely follows the SemRAG architecture:
+How AmbedkarGPT Works
 
-PDF → Semantic Chunking → Knowledge Graph
-    → Local + Global Graph Retrieval → Local LLM Answer
+At a high level, the system follows this flow:
 
-Semantic Chunking (Algorithm 1 – SemRAG)
+<img width="381" height="284" alt="image" src="https://github.com/user-attachments/assets/ae8f3c27-5664-4811-bf1c-6056b739fb37" />
 
-Splits the PDF into sentences.
 
-Uses sentence embeddings + cosine similarity to group semantically related sentences.
+Semantic Chunking
 
-Applies buffer-based merging to preserve local context.
+The Ambedkar book is first split into sentences.
+Sentence embeddings and cosine similarity are used to merge semantically related sentences into coherent chunks, following Algorithm 1 from SemRAG.
 
-Enforces token limits by splitting oversized chunks into overlapping sub-chunks.
+A small context buffer ensures continuity, and oversized chunks are split into overlapping sub-chunks to respect token limits.
 
-Knowledge Graph Construction
+Knowledge Graph
 
-Extracts named entities from chunks using spaCy NER.
+Each semantic chunk is processed using spaCy NER to extract entities such as people, institutions, concepts, and legal terms.
 
-Builds a NetworkX graph:
+A knowledge graph is built where:
 
-Nodes → entities
+Nodes represent entities
 
-Edges → entity co-occurrence relationships
+Edges represent co-occurrence within the same chunk
 
-Applies Louvain community detection to identify thematic clusters.
+To capture higher-level themes, Louvain community detection is applied, grouping related entities into thematic communities. Each community is summarized using the local LLM.
 
-Retrieval (SemRAG-Style)
+Graph-Based Retrieval
 
-Local Graph RAG (Equation 4)
-Retrieves entity-linked chunks relevant to the query.
+When a question is asked, retrieval happens at two levels:
 
-Global Graph RAG (Equation 5)
-Retrieves top-K community summaries representing high-level themes.
+Local Graph Retrieval (SemRAG Equation 4)
+Finds entity-linked chunks that are most relevant to the query.
 
-LLM Integration
+Global Graph Retrieval (SemRAG Equation 5)
+Retrieves summaries of the most relevant communities to provide broader thematic context.
 
-Combines local evidence + global summaries into a structured prompt.
+This combination ensures both precision and contextual completeness.
 
-Uses a local LLM via Ollama (Mistral / LLaMA3).
+Answer Generation
 
-Generates answers strictly grounded in retrieved context.
+The retrieved local chunks and global community summaries are combined into a structured prompt.
 
-2. Directory Structure
-ambedkargpt/
-│
-├── data/
-│   ├── Ambedkar_works.pdf
-│   └── processed/
-│       ├── chunks.json
-│       └── knowledge_graph.pkl
-│
-├── src/
-│   ├── chunking/
-│   │   ├── semantic_chunker.py
-│   │   └── buffer_merger.py
-│   │
-│   ├── graph/
-│   │   ├── entity_extractor.py
-│   │   ├── graph_builder.py
-│   │   ├── community_detector.py
-│   │   └── summarizer.py
-│   │
-│   ├── retrieval/
-│   │   ├── local_search.py
-│   │   ├── global_search.py
-│   │   └── ranker.py
-│   │
-│   ├── llm/
-│   │   ├── llm_client.py
-│   │   ├── prompt_templates.py
-│   │   └── answer_generator.py
-│   │
-│   └── pipeline/
-│       └── ambedkargpt.py
-│
-├── tests/
-│   ├── test_chunking.py
-│   ├── test_retrieval.py
-│   └── test_integration.py
-│
-├── config.yaml
-├── requirements.txt
-├── setup.py
-└── README.md
-
-3. Installation
-3.1 Python Environment
-
-Requirements: Python 3.9+
-
-python -m venv .venv
-
-# Activate
-# Linux / macOS
-source .venv/bin/activate
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-
-pip install --upgrade pip
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-
-
-Ensure the dataset is placed at:
-
-data/Ambedkar_works.pdf
-
-3.2 Local LLM via Ollama
-
-Install Ollama from:
-https://ollama.com
-
-Pull a model (example: Mistral):
-
-ollama pull mistral
-
-
-Update config.yaml:
-
-llm:
-  model: "mistral"
-  max_tokens: 512
-
-
-You may replace "mistral" with any locally available Ollama model (e.g., "llama3").
-
-3.3 Python Package Setup
-
-Add empty __init__.py files so src is importable:
-
-src/
-  __init__.py
-  chunking/__init__.py
-  graph/__init__.py
-  retrieval/__init__.py
-  llm/__init__.py
-  pipeline/__init__.py
-
-4. How to Run the System
-Step 1 – Activate environment & set PYTHONPATH
-# Activate venv
-.venv\Scripts\Activate.ps1
-
-# Windows (PowerShell)
-$env:PYTHONPATH = "src"
-
-Step 2 – Run the pipeline
-python src/pipeline/ambedkargpt.py
-
-
-On the first run, the system will:
-
-Load and semantically chunk the PDF
-Saves output to data/processed/chunks.json
-
-Build the knowledge graph
-Saves graph + enriched chunks to knowledge_graph.pkl
-
-Detect communities & summarize them
-Uses the local LLM to generate thematic summaries
-
-Prepare retrieval indexes
-Builds embeddings for chunks, entities, and communities
-
-Start interactive Q&A
-
-You will see:
-
-AmbedkarGPT (SemRAG-style) ready.
-Type 'exit' to quit.
-Question:
-
-Step 3 – Ask Questions
-
-Example queries:
-
-What does Ambedkar say about caste and social justice?
-
-What are Ambedkar’s views on democracy?
-
-How does Ambedkar discuss the Indian Constitution?
-
-For each query:
-
-Local Graph RAG retrieves entity-linked chunks
-
-Global Graph RAG retrieves relevant communities
-
-The LLM generates a grounded answer using retrieved context
-
-Type exit to stop.
-
-5. Configuration
-
-All hyperparameters are defined in config.yaml:
-
-chunking:
-  embedding_model: "all-MiniLM-L6-v2"
-  buffer_size: 3
-  cosine_threshold: 0.25
-  max_tokens_chunk: 1024
-  subchunk_tokens: 128
-
-graph:
-  use_leiden: false
-  min_community_size: 3
-
-retrieval:
-  top_k_local: 5
-  top_k_global: 3
-  entity_sim_threshold: 0.3
-  chunk_sim_threshold: 0.25
-
-
-These parameters control recall vs precision trade-offs as described in the SemRAG paper.
-
-6. Testing (Optional)
-pytest tests/
-
-
-test_chunking.py – validates semantic chunking
-
-test_retrieval.py – checks local/global retrieval
-
-test_integration.py – lightweight end-to-end test
+A local LLM (Mistral / LLaMA3 via Ollama) generates the final answer strictly grounded in retrieved evidence, avoiding hallucination and external knowledge.
